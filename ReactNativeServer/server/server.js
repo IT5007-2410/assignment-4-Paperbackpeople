@@ -1,12 +1,12 @@
 const fs = require('fs');
+const { URL } = require('url');
 const express = require('express');
 const { ApolloServer, UserInputError } = require('apollo-server-express');
 const { GraphQLScalarType } = require('graphql');
 const { Kind } = require('graphql/language');
 const { MongoClient } = require('mongodb');
 
-const url = 'mongodb://localhost/issuetracker';
-
+const mongoUrl = 'mongodb://root:example@mongodb:27017/issuetracker?authSource=admin';
 // Atlas URL  - replace UUU with user, PPP with password, XXX with hostname
 // const url = 'mongodb+srv://UUU:PPP@cluster0-XXX.mongodb.net/issuetracker?retryWrites=true';
 
@@ -66,8 +66,13 @@ async function getNextSequence(name) {
   const result = await db.collection('counters').findOneAndUpdate(
     { _id: name },
     { $inc: { current: 1 } },
-    { returnOriginal: false },
+    { returnOriginal: false, upsert: true },
   );
+
+  if (!result.value) {
+    throw new Error(`No document found with _id: ${name}`);
+  }
+
   return result.value.current;
 }
 
@@ -96,9 +101,9 @@ async function issueAdd(_, { issue }) {
 }
 
 async function connectToDb() {
-  const client = new MongoClient(url, { useNewUrlParser: true });
+  const client = new MongoClient(mongoUrl, { useNewUrlParser: true });
   await client.connect();
-  console.log('Connected to MongoDB at', url);
+  console.log('Connected to MongoDB at', mongoUrl);
   db = client.db();
 }
 

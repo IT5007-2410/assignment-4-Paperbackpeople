@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:3.6
+    container_name: mongo_3_1_10
+    ports:
+      - "27017:27017" # MongoDB 默认端口
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db # 数据持久化存储
+
+  nodeapp:
+    image: node:18
+    container_name: node_18_app
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app # 将当前目录挂载到容器内
+    ports:
+      - "3000:3000" # 应用程序运行的端口
+    depends_on:
+      - mongodb # 确保 MongoDB 启动后再启动 Node.js 应用
+    command: bash -c "npm install && npm start"
+    environment:
+      MONGO_URL: mongodb://root:example@mongodb:27017/issuetracker?authSource=admin # MongoDB 连接字符串
+
+volumes:
+  mongo_data:
